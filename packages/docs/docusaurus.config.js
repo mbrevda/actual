@@ -3,6 +3,32 @@
 
 const { themes } = require('prism-react-renderer');
 
+const docVersions = require('./doc-versions.json');
+
+const DOCS_DOMAIN = 'https://actualbudget.org';
+const CURRENT_DOCS_URL = `${DOCS_DOMAIN}/docs/`;
+
+const isDeployPreview = process.env.CONTEXT === 'deploy-preview';
+const DOCS_URL =
+  (isDeployPreview && process.env.DEPLOY_PRIME_URL) ||
+  process.env.SITE_URL ||
+  DOCS_DOMAIN;
+
+const isDev = process.env.NODE_ENV === 'development';
+const isNext = isDev || isDeployPreview || DOCS_URL.includes('next.docs');
+const activeVersion = isNext ? 'next' : docVersions.current;
+
+const versionDropdownItems = Object.entries(docVersions.versions || {}).map(
+  ([version, url]) => {
+    const isCurrent = version === activeVersion;
+    const label = version === 'next' ? 'Next' : `v${version}`;
+    const key = isCurrent ? 'to' : 'href';
+    const link = isCurrent ? '/docs/' : url;
+
+    return { label, [key]: link };
+  },
+);
+
 const defaultOptions = {
   editUrl: 'https://github.com/actualbudget/actual/tree/master/packages/docs',
   beforeDefaultRemarkPlugins: [
@@ -15,8 +41,9 @@ const defaultOptions = {
 module.exports = {
   title: 'Actual Budget',
   tagline: 'Your finances - made simple',
-  url: 'https://actualbudget.org/',
+  url: `${DOCS_URL}/`,
   baseUrl: '/',
+  noIndex: isDeployPreview,
   onBrokenLinks: 'throw',
   onBrokenAnchors: 'throw',
   favicon: 'img/favicon.ico',
@@ -31,6 +58,13 @@ module.exports = {
   i18n: {
     defaultLocale: 'en',
     locales: ['en'],
+  },
+
+  customFields: {
+    mainHost: new URL(DOCS_DOMAIN).hostname,
+    currentDocsUrl: CURRENT_DOCS_URL,
+    docVersion: docVersions.current,
+    isNext,
   },
 
   markdown: {
@@ -121,6 +155,12 @@ module.exports = {
             href: 'https://opencollective.com/actual',
             label: 'Donate',
             position: 'left',
+          },
+          {
+            type: 'dropdown',
+            position: 'right',
+            label: activeVersion === 'next' ? 'Next' : `v${activeVersion}`,
+            items: versionDropdownItems,
           },
           {
             href: 'https://discord.gg/8JfAXSgfRf',
